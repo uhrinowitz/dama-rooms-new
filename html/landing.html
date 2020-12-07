@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Pikk dáma játék</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script
+			src="https://code.jquery.com/jquery-3.4.1.js"
+			integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+		crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link rel="stylesheet" href="style.css">
+		<!-- add icon link -->
+		<link rel = "icon" href = "https://cdn3.iconfinder.com/data/icons/casino-2/256/Playing_Cards-512.png" type = "image/x-icon">
+	</head>
+
+	<body>
+		<div class="topnav">
+			<a class="active" href="landing.html">Home</a>
+	
+			<div id="myDropdown" class="dropdown-content">
+				<table id="jatekosPontok">
+				  </table>
+			</div>
+		
+		
+			<a href="kapcsolat.html">Kapcsolat</a>
+			<a href="https://tarsasoznijo.blog.hu/2009/04/24/fekete_macska_9">Játékszabály</a>
+		  </div>
+		  
+		  <div style="padding-left:16px">
+			<h2>Fekete macska</h2>
+		  </div>
+        <p>Kattints ide szoba létrehozásához</p>
+
+        <input type="image" src="https://cdn3.iconfinder.com/data/icons/buttons/512/Icon_31-512.png" value="Click me" onclick="createRoom()">
+        
+        <div id="rooms">Kattints a szobán a csatlakozáshoz</div>
+        
+        <div id="giveRoomId">
+            <p>Tudod a szoba azonosítóját?</p>
+            <input type="text" placeholder="Szoba száma...">
+            <button id='joinExisting' onclick="">Csatlakozás</button>
+            
+        
+        </div>
+    <script>
+        var socket = io.connect('http://localhost:4200/')//('https://pikk-dama.herokuapp.com/');
+        let mySocket = socket.io.engine.id;
+
+        // specify session_id from session storage
+        var session_id;
+        var numberOfRoomsToDisplayAtConnect;
+        // Get saved data from sessionStorage
+        let data = localStorage.getItem('sessionId');
+        console.log(data)
+
+        // set up already existing rooms
+        socket.emit('getNumberOfRooms', "");
+        socket.on('setNumberOfRooms', (data)=>{
+            //store this in session storage
+            sessionStorage.setItem('numberOfRoomsToDisplayAtConnect', data)
+            numberOfRoomsToDisplayAtConnect = sessionStorage.getItem('numberOfRoomsToDisplayAtConnect');
+            console.log(`number of rooms to render: ${numberOfRoomsToDisplayAtConnect}`)
+
+            let numberOfRooms = document.getElementsByClassName("room").length;
+            if(numberOfRooms != numberOfRoomsToDisplayAtConnect){
+                console.log('rooooooms')
+                // then call this function n times
+                let difference = Number(numberOfRoomsToDisplayAtConnect) - Number(numberOfRooms);
+                for(i = 0; i < difference; i++){
+                    createExistingRooms();
+                }
+            }
+        });
+
+        socket.on('connect', (data) => {
+            console.log(`connect event data: ${data}`);
+            
+        });
+        
+        socket.on('ackJoinRoom', (data) => {
+			console.log(data)
+		});
+        
+        if (data == null) {
+            session_id = null; //when we connect first time 
+            socket.emit('start-session', {  sessionId: session_id });
+        } else {
+            session_id = data; //when we connect n times 
+            socket.emit('start-session', {  sessionId: session_id });
+        }
+
+        socket.on('newRoomCreated', (roomsCreated) =>{
+            // count number of rooms on the screen
+            
+            let numberOfRooms = document.getElementsByClassName("room").length;
+            console.log('creating a total of' + roomsCreated - numberOfRooms)
+            if(numberOfRooms != roomsCreated){
+                // then call this function n times
+                let difference = roomsCreated - numberOfRooms;
+                for(i = 0; i < difference; i++){
+                    createExistingRooms();
+                }
+            }
+        });
+        function createExistingRooms(){
+        // get the Rooms dive to append to
+        let div = document.getElementById("rooms");
+        // create subdiv and append it to Rooms div
+        let subdiv = document.createElement("div");
+        subdiv.setAttribute("class", "subdiv");
+        div.appendChild(subdiv);
+        // create actual new room input button
+        let inputId = getRoomNumber(); //gets a number, like 1
+        let newRoom = document.createElement("input");
+        newRoom.type = "image";
+        newRoom.src = "https://www.completecareshop.co.uk/products/large/large-print-pack-of-playing-cards.jpg";
+        newRoom.setAttribute("class", "room");
+        newRoom.href = "/index.html"
+        
+
+        newRoom.addEventListener('click', function(){
+            let szobaSzam = this.id;
+            socket.emit('joinRoom', szobaSzam);
+            console.log(`joininging room: ${szobaSzam}`);
+            location.href = "/index.html";
+        }, false)
+
+        newRoom.id = `room${inputId}`;
+        subdiv.appendChild(newRoom);
+        // create text description
+        let roomDesc = document.createElement("p");
+        roomDesc.innerHTML = `Csatlakozás ide: Szoba ${inputId}`;
+        // room number with text node
+        subdiv.appendChild(roomDesc);
+        }
+
+        function createRoom() {
+        // get the Rooms dive to append to
+        let div = document.getElementById("rooms");
+        // create subdiv and append it to Rooms div
+        let subdiv = document.createElement("div");
+        subdiv.setAttribute("class", "subdiv");
+        div.appendChild(subdiv);
+        // create actual new room input button
+        let inputId = getRoomNumber(); //gets a number, like 1
+        let newRoom = document.createElement("input");
+        newRoom.type = "image";
+        newRoom.src = "https://www.completecareshop.co.uk/products/large/large-print-pack-of-playing-cards.jpg";
+        newRoom.setAttribute("class", "room");
+
+        newRoom.addEventListener('click', function(){
+            let szobaSzam = this.id;
+            socket.emit('joinRoom', szobaSzam);
+            console.log(`joininging room: ${szobaSzam}`);
+            location.href = "/index.html";
+        }, false)
+
+        newRoom.id = `room${inputId}`;
+        subdiv.appendChild(newRoom);
+        // create text description
+        let roomDesc = document.createElement("p");
+        roomDesc.innerHTML = `Csatlakozás ide: Szoba ${inputId}`;
+        // room number with text node
+        subdiv.appendChild(roomDesc);
+        // notify server
+        console.log('inform server that newRoomCreated')
+        socket.emit('newRoomCreated', '');
+    }
+
+
+    function getRoomNumber(){
+        let numberOfRooms = document.getElementsByClassName("room");
+        let roomNumber = numberOfRooms.length + 1;
+        return roomNumber;
+    }
+
+    socket.on("set-session-acknowledgement", ({sessionId}) => {
+        let isFirstConn = localStorage.getItem('sessionId') == null;
+        if(isFirstConn){
+            localStorage.setItem('sessionId', sessionId);
+        }
+        //alert(localStorage.getItem('sessionId'));
+    });
+
+
+
+    </script>
+    <style>
+        input {
+            resize: horizontal;
+            width: 150px;
+        }
+
+        input:active {
+            width: 100px;   
+        }
+
+        input:focus {
+            min-width: 100px;
+        }
+    </style> 
+    </body>   
+</html>
