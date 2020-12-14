@@ -252,13 +252,13 @@ function jatekosSorrend(){
 	originalPlayerOrder.length = 4;
 }
 
-socket.on('sendingMyName', (data)=>{
+socket.on('sendingMyName', ({name, myID})=>{
 	connectionNumber = io.engine.clientsCount;
 	if(connectionNumber == 4){
 		//console.log(data.name)
 		for(i=0;i<4;i++){
-			if(players[i].playerID == data.myID){
-				players[i].playerName = data.name;
+			if(players[i].playerID == myID){
+				players[i].playerName = name;
 			}
 		}
 	socket.broadcast.emit('nevErkezett', players);

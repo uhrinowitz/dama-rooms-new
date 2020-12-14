@@ -29,7 +29,7 @@
 		
 			<a href="kapcsolat.html">Kapcsolat</a>
 			<a href="https://tarsasoznijo.blog.hu/2009/04/24/fekete_macska_9">Játékszabály</a>
-			<div id='showMyName'>Hello</div>
+			<div id='showMyName'>Hello!</div>
 		  </div>
 		  
 		  <div style="padding-left:16px">
@@ -75,14 +75,22 @@
 		let deskAlreadyOrdered = false;
 		let localPlayerNumber;
 		let started = false;
-
         let showMyName = localStorage.getItem('enterLobbyName');
-		document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
+
+		if(showMyName.length > 0){
+			document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
+			data = {
+				name: showMyName,
+				myID: localStorage.getItem('sessionId')
+			}
+			socket.emit('sendingMyName', data); 
+		}
+		
 		
 		// when client connects to server
 			socket.on('connect', () => {
 				let data = {
-					clientID: socket.io.engine.id,
+					clientID: localStorage.getItem('sessionId'),
 					roomId: sessionStorage.getItem('roomNumberIJoinedFirst')
 				};
 				socket.emit('join', data);
@@ -238,7 +246,7 @@
 				////console.log("Már negvannak négyen!");
 			})
 			socket.on('nevErkezett', (players)=>{
-				let mySocket = socket.io.engine.id;
+				let mySocket = localStorage.getItem('sessionId');
 				let myPlayerNumber;
 				let player1 = players[0].playerName;
 				let player2 = players[1].playerName;
@@ -477,7 +485,7 @@
 				m.value = "";
 				data = {
 					name: name,
-					myID: socket.io.engine.id
+					myID: localStorage.getItem('sessionId')
 				}
 				socket.emit('sendingMyName', data);
 			} else {

@@ -52,7 +52,8 @@
         
         </div>
     <script>
-        var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
+		//var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
+		var socket = io.connect('https://pikk-dama.herokuapp.com/');
         let mySocket = socket.io.engine.id;
         let showMyName = localStorage.getItem('enterLobbyName');
 		document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
