@@ -69,8 +69,8 @@
 		<script type="text/javascript" src="main.js"></script>
 		
 		<script>
-		//var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
-		var socket = io.connect('https://pikk-dama.herokuapp.com/');
+		var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
+		//var socket = io.connect('https://pikk-dama.herokuapp.com/');
 		let domTarget;
 		let deskAlreadyOrdered = false;
 		let localPlayerNumber;
@@ -79,18 +79,18 @@
 
 		if(showMyName.length > 0){
 			document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
-			data = {
-				name: showMyName,
-				myID: localStorage.getItem('sessionId')
-			}
-			socket.emit('sendingMyName', data); 
+			// data = {
+			// 	name: showMyName,
+			// 	myID: localStorage.getItem('sessionId');
+			// }
+			// socket.emit('sendingMyName', data); 
 		}
 		
 		
 		// when client connects to server
 			socket.on('connect', () => {
 				let data = {
-					clientID: localStorage.getItem('sessionId'),
+					clientID: socket.io.engine.id,
 					roomId: sessionStorage.getItem('roomNumberIJoinedFirst')
 				};
 				socket.emit('join', data);
@@ -246,7 +246,7 @@
 				////console.log("Már negvannak négyen!");
 			})
 			socket.on('nevErkezett', (players)=>{
-				let mySocket = localStorage.getItem('sessionId');
+				let mySocket = socket.io.engine.id;
 				let myPlayerNumber;
 				let player1 = players[0].playerName;
 				let player2 = players[1].playerName;
@@ -485,7 +485,7 @@
 				m.value = "";
 				data = {
 					name: name,
-					myID: localStorage.getItem('sessionId')
+					myID: socket.io.engine.id
 				}
 				socket.emit('sendingMyName', data);
 			} else {
