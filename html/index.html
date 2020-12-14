@@ -79,11 +79,6 @@
 
 		if(showMyName.length > 0){
 			document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
-			// data = {
-			// 	name: showMyName,
-			// 	myID: localStorage.getItem('sessionId');
-			// }
-			// socket.emit('sendingMyName', data); 
 		}
 		
 		
@@ -130,6 +125,10 @@
 			// receive notification from server that all has been set up
 			socket.on('setupDone', (data) => {
 				// who is player who
+				if(data.roomCounter == 4){
+					started = true;
+					console.log(started)
+				}
 				console.log('there are players : ' + data.players.length)
 				let mySocket = socket.io.engine.id;
 				for(index=0; index<data.players.length; index++){
@@ -159,6 +158,11 @@
 						removeNotifications();
 					}
 				}
+				data = {
+					name: showMyName,
+					myID: socket.io.engine.id,
+				}
+				socket.emit('sendingMyName', data); 
 				socket.emit('boardDrawn', "");
 			});
 		
@@ -241,7 +245,9 @@
 			socket.on('removeCardfromDom', ()=>{
 				domTarget.remove();
 			})
-		
+			socket.on('jatekVege', () =>{
+				alert('A játék befejeződött!');
+			})
 			socket.on('err', (message)=>{
 				////console.log("Már negvannak négyen!");
 			})
@@ -270,37 +276,43 @@
 					socket.emit('newGame', myID);			
 			})
 		
-		socket.on('getPoints', (pontok)=>{
+		socket.on('getPoints', ({pontok, playerArr})=>{
 			pontok = pontok;
 			// check if it hasn't been appended yet
 			console.log('getting pts')
 			let checkForH3 = document.getElementsByClassName("h3points");
 			if (checkForH3.length<1){
 				let sor = pontok[0].length;
-				createTable(4, sor, pontok);
+				createTable(4, sor, pontok, playerArr);
 			}
 		
 		socket.on('atadasTeljesenKesz', ()=>{
 		})
 		
-		function createTable(oszlop, sor, pontok){ 
+		function createTable(oszlop, sor, pontok, playerArr){ 
 			//Create a new table 
-			var newTable = new Table(oszlop,sor, pontok); 
+			var newTable = new Table(oszlop,sor, pontok, playerArr); 
 			//get the element ‘content’ and put the new table inside 
 			document.getElementById("jatekosPontok").appendChild(newTable.build()); 
 			}
 		})
 			
 		class Table {
-				constructor(columns, rows, pontok) {
+				constructor(columns, rows, pontok, playerArr) {
 				//Properties 
 				this.columns = columns; 
 				this.rows = rows;
 				this.pontok = pontok;
+				this.playerArr = playerArr;
+				console.log(this.playerArr)
+				console.log(playerArr)
 				//create the html node <TABLE></TABLE> 
 				this.element = document.createElement("table"); 
 			 }
-				build(columns, rows, pontok){
+				build(columns, rows, pontok, playerArr){
+					console.log(playerArr)
+					playerArr = this.playerArr;
+					console.log('last' + playerArr)
 					pontok = this.pontok;
 					for(let l=-1;l<this.rows;l++){ 
 						//New row <TR></TR>
@@ -310,7 +322,7 @@
 							let cell = row.insertCell();
 							cell.className = "h3points";
 							if(l==-1){
-								cell.appendChild(document.createTextNode("Player asd" + parseInt(c+1)));
+								cell.appendChild(document.createTextNode(playerArr[c])); //("Player asd" + parseInt(c+1)));
 							} else {
 								cell.appendChild(document.createTextNode(sumRows(c, l, pontok))); 
 							}
@@ -462,8 +474,10 @@
 		
 		function showPoints(){
 			document.getElementById("myDropdown").classList.toggle("show");
-			let playerSocketID = localStorage.getItem('sessionId'); //socket.io.engine.id;
+			let playerSocketID = socket.io.engine.id;
 			if(started){
+		console.log('pontok 2')
+
 				socket.emit('showPoints', playerSocketID);
 			}
 		}

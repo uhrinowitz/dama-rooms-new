@@ -201,10 +201,12 @@ socket.on('letTheGameBegin', (roomId) => {
 		players[i].playerID = clients[i];
 	}
 	let notFirstGame = false;
+	let roomCounter = io.sockets.adapter.rooms[roomId].length;
 	data = {
 		players: players,
 		//clients:clients,
-		notFirstGame: notFirstGame
+		notFirstGame: notFirstGame,
+		roomCounter: roomCounter
 	}
 	console.log('ennyi player lett: ' + players.length)
 	
@@ -422,7 +424,9 @@ socket.on('showPoints', (playerSocketID)=>{
 	connectionNumber = io.engine.clientsCount;
 	if(connectionNumber == 4){
 		let pontok = [];
+		let playerArr = [];
 		for(i=0; i<4; i++){
+			playerArr.push(players[i].playerName)
 			let pontokTomb = [];
 			pontokTomb = [...players[i].finalPoints]
 			// pontokTomb = [1,2,3,4];
@@ -440,7 +444,13 @@ socket.on('showPoints', (playerSocketID)=>{
 			pontokTomb.push(points);
 			pontok.push(pontokTomb);
 		}
-		io.to(playerSocketID).emit('getPoints', pontok);		
+
+		// names
+		data = {
+			pontok: pontok,
+			playerArr: playerArr
+		}
+		io.to(playerSocketID).emit('getPoints', data);		
 	}
 });
 
@@ -455,7 +465,6 @@ function checkEndOfCycle(){
 }
 
 socket.on('newGame', ({myID, roomId})=>{
-//if(!pointsCounted){
 	// reset all global variables
 	deck = [];
 	playerOrder = [];
@@ -476,7 +485,6 @@ socket.on('newGame', ({myID, roomId})=>{
 	lehetosegek = [];
 
 	// felírom, hány pontja van egy array-be
-	//for(i=0; i<4; i++){
 		let finalPoints = 0;
 		let playerNumber = getPlayerNumberByID(myID);
 		console.log("player number: " + playerNumber)
@@ -531,6 +539,15 @@ socket.on('newGame', ({myID, roomId})=>{
 //}
 })
 
+function isThereAWinner(){
+	let lastGamePtsLen = players[0].finalPoints.length;
+	let lastGamePts = [];
+	for(i=0; i<4; i++){
+		lastGamePts.push(players[i].finalPoints[lastGamePtsLen]);
+		if(lastGamePts[i] >= 100){ return true;	}
+		else { return false; }
+	}
+}
 function playerHasCard(szin, szam, currentPlayer, currentID){
 	text = szin + "-" + szam // 0-0 for treff 2";
 	//console.log("picked cards for " + currentPlayer + " :" + text)
