@@ -25,13 +25,18 @@
 		
 		
 			<a href="kapcsolat.html">Kapcsolat</a>
-			<a href="https://tarsasoznijo.blog.hu/2009/04/24/fekete_macska_9">Játékszabály</a>
+            <a href="https://tarsasoznijo.blog.hu/2009/04/24/fekete_macska_9">Játékszabály</a>
+            <div id='showMyName'>Hello!</div>
 		  </div>
 		  
 		  <div style="padding-left:16px">
 			<h2>Fekete macska</h2>
 		  </div>
         <p>Kattints ide szoba létrehozásához</p>
+
+        <!-- TEST -->
+          <div id = 'test'></div>
+        <!-- End TEST -->
 
         <input type="image" src="https://cdn3.iconfinder.com/data/icons/buttons/512/Icon_31-512.png" value="Click me" onclick="createRoom()">
         
@@ -45,8 +50,10 @@
         
         </div>
     <script>
-        var socket = io.connect('https://pikk-dama.herokuapp.com/');
+        var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
         let mySocket = socket.io.engine.id;
+        let showMyName = localStorage.getItem('enterLobbyName');
+		document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
 
         // specify session_id from session storage
         var session_id;
@@ -59,13 +66,14 @@
         socket.emit('getNumberOfRooms', "");
         socket.on('setNumberOfRooms', (data)=>{
             //store this in session storage
+            console.log(`response server side rooms: ${data}`)
+            console.log(`in session storage we have: ${sessionStorage.getItem('numberOfRoomsToDisplayAtConnect')}`)
             sessionStorage.setItem('numberOfRoomsToDisplayAtConnect', data)
             numberOfRoomsToDisplayAtConnect = sessionStorage.getItem('numberOfRoomsToDisplayAtConnect');
-            console.log(`number of rooms to render: ${numberOfRoomsToDisplayAtConnect}`)
+            console.log(`number of rooms to render as a result: ${numberOfRoomsToDisplayAtConnect}`)
 
             let numberOfRooms = document.getElementsByClassName("room").length;
             if(numberOfRooms != numberOfRoomsToDisplayAtConnect){
-                console.log('rooooooms')
                 // then call this function n times
                 let difference = Number(numberOfRoomsToDisplayAtConnect) - Number(numberOfRooms);
                 for(i = 0; i < difference; i++){
@@ -95,7 +103,7 @@
             // count number of rooms on the screen
             
             let numberOfRooms = document.getElementsByClassName("room").length;
-            console.log('creating a total of' + roomsCreated - numberOfRooms)
+            console.log(`creating a total of server side rooms: ${roomsCreated} - client side rooms: ${numberOfRooms}`)
             if(numberOfRooms != roomsCreated){
                 // then call this function n times
                 let difference = roomsCreated - numberOfRooms;
@@ -104,6 +112,7 @@
                 }
             }
         });
+
         function createExistingRooms(){
         // get the Rooms dive to append to
         let div = document.getElementById("rooms");
@@ -122,6 +131,10 @@
 
         newRoom.addEventListener('click', function(){
             let szobaSzam = this.id;
+            alert('szobaszám: ' + szobaSzam)
+            // store room number player joined first in session storage
+            sessionStorage.setItem('roomNumberIJoinedFirst', szobaSzam)
+            alert('szobaszám session id: ' + sessionStorage.getItem('roomNumberIJoinedFirst'))
             socket.emit('joinRoom', szobaSzam);
             console.log(`joininging room: ${szobaSzam}`);
             location.href = "/index.html";
@@ -152,6 +165,10 @@
 
         newRoom.addEventListener('click', function(){
             let szobaSzam = this.id;
+            alert('szobaszám: ' + szobaSzam)
+            // store room number player joined first in session storage
+            sessionStorage.setItem('roomNumberIJoinedFirst', szobaSzam)
+            alert('szobaszám session id: ' + sessionStorage.getItem('roomNumberIJoinedFirst'))
             socket.emit('joinRoom', szobaSzam);
             console.log(`joininging room: ${szobaSzam}`);
             location.href = "/index.html";
@@ -183,7 +200,16 @@
         }
         //alert(localStorage.getItem('sessionId'));
     });
-
+    // socket.on('lobbyJoin', (msg) => {
+    //     appendStats(msg)
+    // })
+    // function appendStats(msg){
+    // var li = document.createElement("li");
+	// 			text = document.createTextNode(msg);
+	// 			li.appendChild(text);
+	// 			var addToDiv = document.getElementById('test');
+	// 			addToDiv.appendChild(li);
+    // }
 
 
     </script>

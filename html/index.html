@@ -27,6 +27,7 @@
 		
 			<a href="kapcsolat.html">Kapcsolat</a>
 			<a href="https://tarsasoznijo.blog.hu/2009/04/24/fekete_macska_9">Játékszabály</a>
+			<div id='showMyName'>Hello</div>
 		  </div>
 		  
 		  <div style="padding-left:16px">
@@ -66,15 +67,22 @@
 		<script type="text/javascript" src="main.js"></script>
 		
 		<script>
-		var socket = io.connect('https://pikk-dama.herokuapp.com/');
+		var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
 		let domTarget;
 		let deskAlreadyOrdered = false;
 		let localPlayerNumber;
+		let started = false;
+
+        let showMyName = localStorage.getItem('enterLobbyName');
+		document.getElementById('showMyName').innerText = `Helló ${showMyName}!`
 		
 		// when client connects to server
-			socket.on('connect', (data) => {
-				let playerSocketID = socket.io.engine.id;
-				socket.emit('join', playerSocketID);
+			socket.on('connect', () => {
+				let data = {
+					clientID: socket.io.engine.id,
+					roomId: sessionStorage.getItem('roomNumberIJoinedFirst')
+				};
+				socket.emit('join', data);
 				console.log('connect')
 			});
 		
@@ -96,26 +104,27 @@
 				console.log("server started");
 			});
 			// listens to when all players joined and notify server
-			socket.on('onePlayerJoined', (counter)  =>{
-				////console.log("Number of connections: " + counter);
-				if(counter == 4){
-					socket.emit('letTheGameBegin', '');
-				} else if(counter > 4) {
+			socket.on('onePlayerJoined', (roomCounter)  =>{
+				alert('joined, total: '+roomCounter)
+				if(roomCounter == 4){
+					started = true;
+					let roomId = sessionStorage.getItem('roomNumberIJoinedFirst');
+					console.log(`room id for letTheGameBegin: ${roomId}`)
+					socket.emit('letTheGameBegin', roomId);
+				} else if(roomCounter > 4) {
 					alert('Ebben a szobában már megvannak négyen.')
 				}
 			});
-			
-			// inform in browser console that all players joined
-			// socket.on('allPlayersJoined', (msg) => {
-			// 	socket.emit('letTheGameBegin', "letTheGameBegin");
-			// });	
-		
+
 			// receive notification from server that all has been set up
 			socket.on('setupDone', (data) => {
 				// who is player who
+				console.log('there are players : ' + data.players.length)
 				let mySocket = socket.io.engine.id;
-				for(index=0; index<4; index++){
+				for(index=0; index<data.players.length; index++){
+					console.log('my socket: '+ mySocket + ' current socket: ' + data.players[index].playerID)
 					if(data.players[index].playerID == mySocket){
+						console.log('socket match!!')
 						// add player id to DOM and remove cards if there are any previously
 						let className = "kezdoKartyak";
 						removeKartyak(className);
@@ -123,6 +132,7 @@
 						localPlayerNumber = data.players[index].playerNum;
 						appendStats(text);
 						// add
+						console.log('cards: ' + data.players[index].playerCards);
 						for(j=0; j<13; j++){
 							let link = '/' + "kepek" + '/' + data.players[index].playerCards[j].color+ "-" + data.players[index].playerCards[j].number + '.png';
 							appendImg(link);
@@ -144,20 +154,18 @@
 			socket.on('atadasDone', (data)=>{
 				let cycle = data.cycle;
 				if(cycle % 4 != 0){
-					////console.log("megkapom a kártyákat, cycle: " + cycle)
 					// töröljük középről az átadott kártyákat
 					// és írassuk ki az infobárra, amelyeket kaptunk
 					let imagesToRemoveMiddle = document.getElementsByClassName("dobottKartyak");
 					appendStats("Ezeket adtad át:");
 		
 					for(i=imagesToRemoveMiddle.length-1;i>-1; i--){
-					appendImgInfo(imagesToRemoveMiddle[i].src.split("4200")[1]);
+					appendImgInfo(imagesToRemoveMiddle[i].src.split("com")[1]);
 					imagesToRemoveMiddle[i].remove();
 					}
 		
 					appendStats("Ezeket kaptad:");
 					let fromWhom = getFromWhom(cycle);
-					////console.log("let from whom: " + fromWhom)
 					for(i=0; i<data.players[fromWhom].cardsToPass.length;i++){
 						link = "/kepek/" + data.players[fromWhom].cardsToPass[i].color + "-" + data.players[fromWhom].cardsToPass[i].number + ".png";
 						appendImgInfo(link);
@@ -173,7 +181,8 @@
 				for(i=0; i<4; i++){
 					if(data.players[i].playerID == mySocket){
 						for(j=0; j<13; j++){
-							let link = '/' + "kepek" + '/' + data.players[i].playerCards[j].color+ "-" + data.players[i].playerCards[j].number + '.png';
+							//let link = '/' + "kepek" + '/' + data.players[i].playerCards[j].color+ "-" + data.players[i].playerCards[j].number + '.png';
+							let link = `/kepek/${data.players[i].playerCards[j].color}-${data.players[i].playerCards[j].number}.png`;
 							appendImg(link);
 						}	
 					}
@@ -188,11 +197,6 @@
 				appendStats(text);
 			})
 
-			socket.on("testRoom", (msg) => {
-				console.log("asd");
-				socket.emit("testRoom", "")
-			})
-		
 			socket.on('atadKartyaKozepre', (aktualisanAtadottKartyak)=>{
 				console.log(aktualisanAtadottKartyak)
 				let atadKartyaKozepre = document.getElementsByClassName("dobottKartyak");
@@ -201,20 +205,18 @@
 					atadKartyaKozepre[i].remove();
 				}
 				for(i=0; i< aktualisanAtadottKartyak.length; i++){
-					let text = aktualisanAtadottKartyak[i].color + "-" + aktualisanAtadottKartyak[i].number;
-					let link = '/' + "kepek" + '/' + text + '.png';
-					////console.log(text);
+					let text = `${aktualisanAtadottKartyak[i].color}-${aktualisanAtadottKartyak[i].number}`;
+					let link = `/kepek/${text}.png`;
 					appendImgDobott(link);
 				}
 			})
 			socket.on('onCorrectPlayerPick', (text)=>{ // text = "0-0"
 				removeMiddleCards();
-				let link = '/' + "kepek" + '/' + text + '.png';
+				let link = `/kepek/${text}.png`;
 				appendImgDobott(link);
-				////console.log("appending dobott kartyak: " + link)
 			})
-			socket.on('notYourTurn', (text)=>{
-				alert(text);
+			socket.on('notYourTurn', (warn)=>{
+				alert(warn);
 			})
 		
 			socket.on('newRound', (text)=>{
@@ -248,34 +250,26 @@
 			})
 		
 			socket.on('gameOver', ()=>{
-				//text = "Kör vége, kérlek egyelőre csak az OK-ra kattints!";
-				//console.log(text);
-				//let uj = confirm(text);
 				// remove cards from table
-				//if(uj){
 					let numberOfDobottKartyak = document.querySelectorAll(".dobottKartyak");
 					for(i=0; i<numberOfDobottKartyak.length; i++){
 						numberOfDobottKartyak[i].remove();
 					}
 					let myID = socket.io.engine.id;
 					socket.emit('newGame', myID);			
-				//}
 			})
 		
 		socket.on('getPoints', (pontok)=>{
-			////console.log("pontok: " + pontok)
 			pontok = pontok;
 			// check if it hasn't been appended yet
+			console.log('getting pts')
 			let checkForH3 = document.getElementsByClassName("h3points");
 			if (checkForH3.length<1){
 				let sor = pontok[0].length;
-				////console.log("Table creálódik, sora: " + sor);
 				createTable(4, sor, pontok);
-				////console.log("table created")
 			}
 		
 		socket.on('atadasTeljesenKesz', ()=>{
-			////console.log('ackd atadasTeljesenKesz');
 		})
 		
 		function createTable(oszlop, sor, pontok){ 
@@ -297,15 +291,15 @@
 			 }
 				build(columns, rows, pontok){
 					pontok = this.pontok;
-					for(var l=-1;l<this.rows;l++){ 
+					for(let l=-1;l<this.rows;l++){ 
 						//New row <TR></TR>
-						var row = this.element.insertRow(); 
-						for(var c=0;c<this.columns;c++){ 
+						let row = this.element.insertRow(); 
+						for(let c=0;c<this.columns;c++){ 
 							//New cell<TD></TD> 
-							var cell = row.insertCell();
+							let cell = row.insertCell();
 							cell.className = "h3points";
 							if(l==-1){
-								cell.appendChild(document.createTextNode("Player" + parseInt(c+1)));
+								cell.appendChild(document.createTextNode("Player asd" + parseInt(c+1)));
 							} else {
 								cell.appendChild(document.createTextNode(sumRows(c, l, pontok))); 
 							}
@@ -314,15 +308,11 @@
 					return this.element; 
 				} 
 			}
+
 			function sumRows(c, l, pontok){
 			let sum = 0;
 				for(i=0; i<l+1; i++){
-					////console.log("header száma is " + c)
-					////console.log("pontjai " + pontok[c])
-					////console.log("element is " + i)
-					////console.log("elementek száma " + pontok[c].length)
 					sum+=pontok[c][i];
-					////console.log("sum is: " + sum)
 				}
 			return sum;
 		
@@ -334,17 +324,17 @@
 			// then players give 3 cards to the right
 			switch(cycle %4){
 				case 1:
-					if(myPlayerNumber == 0){return 3} // player 0 gets cards from player 1
-					if(myPlayerNumber == 1){return 0} // player 1 gets cards from player 2
-					if(myPlayerNumber == 2){return 1}
-					if(myPlayerNumber == 3){return 2}
+					if(myPlayerNumber == 0){return 1} // player 0 gets cards from player 1
+					if(myPlayerNumber == 1){return 2} // player 1 gets cards from player 2
+					if(myPlayerNumber == 2){return 3}
+					if(myPlayerNumber == 3){return 0}
 				break;
 		
 				case 2:
-					if(myPlayerNumber == 0){return 1}
-					if(myPlayerNumber == 1){return 2}
-					if(myPlayerNumber == 2){return 3}
-					if(myPlayerNumber == 3){return 0}
+					if(myPlayerNumber == 0){return 3}
+					if(myPlayerNumber == 1){return 0}
+					if(myPlayerNumber == 2){return 1}
+					if(myPlayerNumber == 3){return 2}
 				break;
 		
 				case 3:
@@ -461,8 +451,10 @@
 		
 		function showPoints(){
 			document.getElementById("myDropdown").classList.toggle("show");
-			let playerSocketID = socket.io.engine.id;
-			socket.emit('showPoints', playerSocketID);
+			let playerSocketID = localStorage.getItem('sessionId'); //socket.io.engine.id;
+			if(started){
+				socket.emit('showPoints', playerSocketID);
+			}
 		}
 		
 		function confirmAtadas(){
@@ -475,7 +467,7 @@
 			let name = document.getElementById("name").value;
 			if(name != ""){
 				let message = document.getElementById("message").value;
-				text = name + " says: " + message;
+				text = `${name} says: ${message}`;
 				socket.emit('chatMessage', text);
 				// reset content
 				let m = document.getElementById("message");
@@ -491,7 +483,6 @@
 		}
 		function removeMiddleCards(){
 			let numberOfDobottKartyak = document.querySelectorAll(".dobottKartyak");
-			////console.log("dobottak: " + numberOfDobottKartyak)
 			if(numberOfDobottKartyak.length == 4){
 				for(i=0; i<numberOfDobottKartyak.length; i++){
 					numberOfDobottKartyak[i].remove();

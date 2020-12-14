@@ -62,18 +62,32 @@ var server=require("http").Server(app);
 var io = require('socket.io')(server);
 let appPort = process.env.PORT || 4200;
 
+console.log(__dirname)
+
 // FILE SERVER SECTION
 app.get('/', (req, res) => {  
+    res.sendFile(__dirname + '/html/name.html');
+});
+
+app.get('/landing.html', (req, res) => {  
     res.sendFile(__dirname + '/html/landing.html');
 });
 
+app.get('/logo.png', (req, res) => {  
+    res.sendFile(__dirname + '/html/kepek/logo.png');
+});
+
 app.get('/index.html', (req, res) => {  
-    res.sendFile(__dirname + '/html/index.html');
+	res.sendFile(__dirname + '/html/index.html');
 });
 
 app.get('/style.css', (req, res) => {
 	res.sendFile(__dirname + "/" + "style.css");
   });
+  app.get('/styleName.css', (req, res) => {
+	res.sendFile(__dirname + "/" + "styleName.css");
+  });
+
 // serve all card images
 var htmlPath = __dirname + '/' + 'html';
 app.use(express.static(htmlPath));
@@ -97,7 +111,7 @@ let canCallHeart = false
 let gameInit = true;
 let merre;
 let winner;
-let szin = null;
+let totalNumberOfSessions = 0;
 let allitottam = false;
 let lehetosegek = [];
 let connectionNumber;
@@ -125,12 +139,18 @@ socket.on('start-session', (data) => {
 		});
 	}
 	socket.join('lobby');
+
+	let clients = io.nsps['/'].adapter.rooms['lobby'].sockets;
+	console.log("lobbyban 2:" + Object.keys(clients).length);
+	if (io.sockets.adapter.rooms['lobby']) {
+       console.log('lobbyban ennyien vannak: ' + io.sockets.adapter.rooms['lobby'].length);
+	}
+	io.in('lobby').emit('lobbyJoin', `egy új jétákos jött: ${socket.id}`)
 });
 
-// socket.on('joinRoom', )
 socket.on('getNumberOfRooms', ()=>{
 	socket.emit('setNumberOfRooms', roomsCreated);
-	console.log('setNumberOfRooms')
+	console.log(`rooms created: ${roomsCreated}`);
 })
 
 socket.on('newRoomCreated', ()=>{
@@ -142,13 +162,15 @@ socket.on('newRoomCreated', ()=>{
 
 // listens for client ids with join and pushes them to array
 // displays all ids in the black console
-socket.on('join', (clientID) => {
+socket.on('join', ({clientID, roomId}) => {
+		socket.join(roomId);
 		clients.push(clientID);
-		let counter = clients.length;
-		socket.emit('onePlayerJoined', counter);
-		for(i=0; i<clients.length; i++){
-			//console.log("Player" + [i] + " is: " + clients[i]);
-		}
+		// send info about room number
+		let roomCounter = io.sockets.adapter.rooms[roomId].length;
+		console.log(`A total of ${roomCounter} players joined ${roomId}`);
+		console.log('firing onePlayerJoined')
+		//io.in(roomId).emit('onePlayerJoined', roomCounter);
+		io.to(clientID).emit('onePlayerJoined', roomCounter);
 	})
 socket.on("joinRoom", (roomId) =>{
 
@@ -158,34 +180,23 @@ socket.on("joinRoom", (roomId) =>{
 	socket.emit('ackJoinRoom', 'joined room');
 	console.log('doing joinRoom')
 	socket.to(roomId).emit('ackJoinRoom', 'a player joined your room')
-
-		
-	//io.to('room1').emit('testRoom', "joined room 1");
-	//io.to('room2').emit('testRoom', "joined room 2");
+	let lobbyCounter = io.nsps['/'].adapter.rooms[roomId].length;
+	console.log('lobby: ' + lobbyCounter)
 });
-
-socket.on("testRoom", () =>{
-	console.log("anyááád")
-})
-// notify client side browser console when all players have joined
-// socket.on('allPlayersJoined', () =>{
-// 	socket.emit('allPlayersJoined', '');
-// })
 
 socket.on('chatMessage', (text)=>{
 	message = text;
 	io.of('/').emit('messageReceived', message);
 })
 
-socket.on('letTheGameBegin', () => {
-	// create room
-
+socket.on('letTheGameBegin', (roomId) => {
+	console.log('doing letTheGameBegin for '+roomId)
 	// create players
 	createPlayers();
 	// shuffle cards in deck array
 	shuffle(deck);
 	// split deck to 4 slices
-	splitDeck();
+	//splitDeck();
 	for(i=0; i<players.length; i++){
 		players[i].playerID = clients[i];
 	}
@@ -195,8 +206,37 @@ socket.on('letTheGameBegin', () => {
 		//clients:clients,
 		notFirstGame: notFirstGame
 	}
-	for(i=0; i<clients.length; i++){
-		io.to(players[i].playerID).emit('setupDone', data);
+	console.log('ennyi player lett: ' + players.length)
+	
+	//splitDeck();
+	let n = players.length % 4;
+	if(n==0){
+
+		//totalNumberOfSessions++
+		//let hanyPakliKell = players.length - 4;
+		let k = players.length - 4;
+		//console.log('hanyPakliKell: ' + hanyPakliKell)
+		splitDeck(k);
+		// console.log('players.length: ' + players.length)
+		// console.log('totalNumberOfSessions: ' + totalNumberOfSessions)
+		// console.log('min i: ' + '(players.length: ' + players.length + ' / totalNumberOfSessions: ' + totalNumberOfSessions +') - 4')
+
+		// console.log('MIN I: ' + players.length/totalNumberOfSessions-4 + ' MAX I: ' + 4*totalNumberOfSessions)
+		// for(i=players.length/totalNumberOfSessions-4; i<4*totalNumberOfSessions; i++){
+		// 	io.to(players[i].playerID).emit('setupDone', data);
+		// }
+		console.log('broadcasting to ' + roomId)
+		let counter = 0;
+		for (const element of players) {
+			console.log('playerCards len: ' + element.playerCards.length);
+			counter++
+			if(counter%4==0){
+				console.log(element.playerID);
+				io.in(roomId).emit('setupDone', data);
+				//break;
+			}
+		  }
+		//io.in(roomId).emit('setupDone', data);
 	}
 })
 
@@ -369,7 +409,7 @@ socket.on('playerPickedCard', (data) => {
 		   originalPlayerOrder.length = 4;
 		   }
 		winner = 0;
-		checkEndOfCycle();
+		//checkEndOfCycle();
 	}
 	if(deck.length == 0){
 		// game over
@@ -378,13 +418,12 @@ socket.on('playerPickedCard', (data) => {
 	}
 })						
 
-socket.on("showPoints", (playerSocketID)=>{
+socket.on('showPoints', (playerSocketID)=>{
 	connectionNumber = io.engine.clientsCount;
 	if(connectionNumber == 4){
 		let pontok = [];
 		for(i=0; i<4; i++){
 			let pontokTomb = [];
-			console.log("final points:" + players[i].finalPoints)
 			pontokTomb = [...players[i].finalPoints]
 			// pontokTomb = [1,2,3,4];
 			let points = 0;
@@ -401,14 +440,13 @@ socket.on("showPoints", (playerSocketID)=>{
 			pontokTomb.push(points);
 			pontok.push(pontokTomb);
 		}
-		console.log("A pontok hossza: "+pontok.length);
 		io.to(playerSocketID).emit('getPoints', pontok);		
 	}
-})
+});
 
 function checkEndOfCycle(){
 	// game over when round == 14
-	if(round == 3){
+	if(round == 14){
 		console.log("round is: " + round + ", sending gamover")
 		cycle+=1;
 		io.of('/').emit('gameOver', '');
@@ -416,7 +454,7 @@ function checkEndOfCycle(){
 
 }
 
-socket.on('newGame', (myID)=>{
+socket.on('newGame', ({myID, roomId})=>{
 //if(!pointsCounted){
 	// reset all global variables
 	deck = [];
@@ -461,24 +499,20 @@ socket.on('newGame', (myID)=>{
 			}
 		}
 
-		players[playerNumber].playerCards = [];
-		players[playerNumber].playerInventory = [];
-		players[playerNumber].lehetosegek = [];
-		players[playerNumber].cardsToPass = [];
-		players[playerNumber].tempCardsToPass = [];
-		players[playerNumber].atadasDone = false;
-		console.log("final points adding: " + finalPoints)
-		players[playerNumber].finalPoints.push(finalPoints);		
-	//}
+	players[playerNumber].playerCards = [];
+	players[playerNumber].playerInventory = [];
+	players[playerNumber].lehetosegek = [];
+	players[playerNumber].cardsToPass = [];
+	players[playerNumber].tempCardsToPass = [];
+	players[playerNumber].atadasDone = false;
+	console.log("final points adding: " + finalPoints)
+	players[playerNumber].finalPoints.push(finalPoints);		
+	
+	// calc winner
+	if(isThereAWinner()){
+		io.in(roomId).emit('jatekVege', '');
+	}
 
-	//for(i=0;i<4;i++){
-		// players[i].playerCards = [];
-		// players[i].playerInventory = [];
-		// players[i].lehetosegek = [];
-		// players[i].cardsToPass = [];
-		// players[i].tempCardsToPass = [];
-		// players[i].atadasDone = false;
-	//}
 	evalCards = [];
 	createCards();
 	shuffle(deck);
@@ -743,7 +777,8 @@ class Player {
 
 //create cards
 createCards();
-console.log("Deck created with: " + deck.length);
+console.log("New Deck created with: " + deck.length);
+console.log(`rooms created: ${roomsCreated}`)
 
 function createCards(){
 	for(i=0; i<4; i++){
@@ -781,8 +816,8 @@ function shuffle(deck) {
 	return deck;
   }
 
-function splitDeck(){
-	var i,j,temparray,chunk = 13, k=0;
+function splitDeck(pakli){
+	var i,j,temparray,chunk = 13, k=pakli;
 	for (i=0,j=deck.length; i<j; i+=chunk) {
 		// holds 13 cards
 		temparray = deck.slice(i,i+chunk);
