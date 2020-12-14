@@ -12,6 +12,8 @@
 		<link rel="stylesheet" href="style.css">
 		<!-- add icon link -->
 		<link rel = "icon" href = "https://cdn3.iconfinder.com/data/icons/casino-2/256/Playing_Cards-512.png" type = "image/x-icon">
+		<link rel="preconnect" href="https://fonts.gstatic.com">
+		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
 	</head>
 
 	<body>
@@ -67,7 +69,8 @@
 		<script type="text/javascript" src="main.js"></script>
 		
 		<script>
-		var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
+		//var socket = io.connect('localhost:4200')//('https://pikk-dama.herokuapp.com/');
+		var socket = io.connect('https://pikk-dama.herokuapp.com/');
 		let domTarget;
 		let deskAlreadyOrdered = false;
 		let localPlayerNumber;

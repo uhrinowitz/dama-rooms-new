@@ -11,7 +11,9 @@
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 		<link rel="stylesheet" href="style.css">
 		<!-- add icon link -->
-		<link rel = "icon" href = "https://cdn3.iconfinder.com/data/icons/casino-2/256/Playing_Cards-512.png" type = "image/x-icon">
+        <link rel = "icon" href = "https://cdn3.iconfinder.com/data/icons/casino-2/256/Playing_Cards-512.png" type = "image/x-icon">
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
 	</head>
 
 	<body>
@@ -131,10 +133,10 @@
 
         newRoom.addEventListener('click', function(){
             let szobaSzam = this.id;
-            alert('szobaszám: ' + szobaSzam)
+            //alert('szobaszám: ' + szobaSzam)
             // store room number player joined first in session storage
             sessionStorage.setItem('roomNumberIJoinedFirst', szobaSzam)
-            alert('szobaszám session id: ' + sessionStorage.getItem('roomNumberIJoinedFirst'))
+            //alert('szobaszám session id: ' + sessionStorage.getItem('roomNumberIJoinedFirst'))
             socket.emit('joinRoom', szobaSzam);
             console.log(`joininging room: ${szobaSzam}`);
             location.href = "/index.html";
@@ -198,20 +200,7 @@
         if(isFirstConn){
             localStorage.setItem('sessionId', sessionId);
         }
-        //alert(localStorage.getItem('sessionId'));
     });
-    // socket.on('lobbyJoin', (msg) => {
-    //     appendStats(msg)
-    // })
-    // function appendStats(msg){
-    // var li = document.createElement("li");
-	// 			text = document.createTextNode(msg);
-	// 			li.appendChild(text);
-	// 			var addToDiv = document.getElementById('test');
-	// 			addToDiv.appendChild(li);
-    // }
-
-
     </script>
     <style>
         input {
