@@ -15,11 +15,13 @@
         <!-- <img src='C:\Users\Ákos\Desktop\dama-with-rooms\dama-rooms\html\kepek\logo.png'>  -->
         <img src="logo.png">
         <!-- "/html/logo.png"> -->
-        <form action="landing.html">
-            <input id='enterLobby' class='centeredInp' type="tel" name="name-input" id="name" placeholder="Név...">
+        
+            <input id='enterLobby' class='centeredInp' type="text" name="name-input" id="name" placeholder="Név...">
         
             <button class="dropbtn centeredBtn" type="submit" value="Submit" onclick="saveName()">Belépés</button>
-          </form>
+        
+
+        
 
     </div>
     <script>
@@ -29,6 +31,7 @@ function saveName() {
   if(nameVal.length > 0){
     localStorage.setItem('enterLobbyName', nameVal);
   }
+  window.location.href = '/landing.html';
 }
 
         function invertColor(hex, bw) {
